@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIFTLINK - Manage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
+        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 10px; }
+        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 5px 0; }
+        .user-badge { text-align: center; font-size: 12px; color: #b2bec3; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; }
+        .share-row { text-align: center; margin-bottom: 20px; }
+        .share-btn { background: none; border: 1px solid var(--secondary); color: var(--secondary); padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #b2bec3; margin-left: 5px; }
+        input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .add-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary), #fab1a0); color: white; border: none; border-radius: 15px; font-weight: 800; font-size: 16px; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); }
+        .del-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+    </style>
+</head>
+<body onload="fetchItems()">
+
+    <a href="menu.html" class="nav-link">Home</a>
+
+    <h2>GIFTLINK</h2>
+    <div id="userDisplay" class="user-badge">Personal Wishlist</div>
+    
+    <div class="share-row">
+        <button class="share-btn" onclick="shareList()">Share My List</button>
+    </div>
+
+    <div class="box">
+        <label>Gift Item</label>
+        <input type="text" id="name" placeholder="What do you want?">
+        
+        <label>Estimated Price</label>
+        <input type="text" id="price" placeholder="0.00">
+        
+        <button class="add-btn" onclick="sendData()">ADD TO MY LIST</button>
+    </div>
+
+    <div id="itemList"></div>
+
+    <script>
+        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
+        const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+
+        async function shareList() {
+            const currentUser = localStorage.getItem('giftlink_user');
+            const shareData = {
+                title: 'My GIFTLINK Wishlist',
+                text: 'Check out my wishlist!',
+                // This shares the link and tells the friend to search for YOUR username
+                url: window.location.href.replace('receiver.html', 'giver.html') + '?search=' + currentUser
+            };
+            try { await navigator.share(shareData); } catch (err) { alert('Share your username: ' + currentUser); }
+        }
+
+        async function sendData() {
+            const nameField = document.getElementById('name');
+            const priceField = document.getElementById('price');
+            const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
+
+            const payload = {
+                list_title: currentUser,
+                name: nameField.value,
+                price: priceField.value,
+                is_nominated: false
+            };
+
+            await fetch(URL_BASE, {
+                method: 'POST',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            nameField.value = '';
+            priceField.value = '';
+            fetchItems();
+        }
+
+        async function fetchItems() {
+            const currentUser = localStorage.getItem('giftlink_user');
+            if(!currentUser) return;
+            
+            document.getElementById('userDisplay').innerText = currentUser + "'s Wishlist";
+            
+            const response = await fetch(`${URL_BASE}?list_title=eq.${currentUser}`, {
+                method: 'GET',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+            });
+            const data = await response.json();
+            const area = document.getElementById('itemList');
+            area.innerHTML = '<label>My Items</label>';
+            
+            data.forEach(item => {
+                area.innerHTML += `
+                    <div class="item-row">
+                        <div><b>${item.name}</b><br><span style="color:#636e72">$${item.price}</span></div>
+                        <button class="del-btn" onclick="deleteItem(${item.id})">REMOVE</button>
+                    </div>`;
+            });
+        }
+
+        async function deleteItem(id) {
+            if(!confirm("Remove this gift?")) return;
+            await fetch(`${URL_BASE}?id=eq.${id}`, {
+                method: 'DELETE',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+            });
+            fetchItems();
+        }
+    </script>
+</body>
+</html>
