@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIFTLINK - My Lists</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
+        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; }
+        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; }
+        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .open-btn { background: var(--secondary); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 12px; }
+    </style>
+</head>
+<body onload="loadMyLists()">
+    <a href="menu.html" class="nav-link">Back</a>
+    <h2>My Lists</h2>
+
+    <div class="box">
+        <input type="text" id="newListName" placeholder="e.g. Christmas or Birthday">
+        <button class="add-btn" onclick="createNewList()">CREATE NEW LIST</button>
+    </div>
+
+    <div id="myListsArea"></div>
+
+    <script>
+        function createNewList() {
+            const name = document.getElementById('newListName').value.trim();
+            if(!name) return;
+            
+            // We save list names in LocalStorage for this user
+            let lists = JSON.parse(localStorage.getItem('my_gift_lists') || "[]");
+            if(!lists.includes(name)) {
+                lists.push(name);
+                localStorage.setItem('my_gift_lists', JSON.stringify(lists));
+            }
+            document.getElementById('newListName').value = '';
+            loadMyLists();
+        }
+
+        function loadMyLists() {
+            const lists = JSON.parse(localStorage.getItem('my_gift_lists') || "[]");
+            const area = document.getElementById('myListsArea');
+            area.innerHTML = lists.length ? '' : '<p style="text-align:center; color:#b2bec3;">No lists created yet.</p>';
+            
+            lists.forEach(list => {
+                area.innerHTML += `
+                    <div class="list-card">
+                        <b>${list.toUpperCase()}</b>
+                        <a href="receiver.html?list=${encodeURIComponent(list)}" class="open-btn">OPEN LIST</a>
+                    </div>`;
+            });
+        }
+    </script>
+</body>
+</html>

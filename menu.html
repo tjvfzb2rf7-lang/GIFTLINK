@@ -12,7 +12,7 @@
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            font-family: -apple-system, sans-serif; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -99,9 +99,9 @@
 
     <div class="menu-container">
         
-        <a href="receiver.html" class="menu-card receiver-border">
-            <h3>Manage your list</h3>
-            <p>Admin: Add items or remove gifts from your wishlist.</p>
+        <a href="lists.html" class="menu-card receiver-border">
+            <h3>Create a list</h3>
+            <p>Add items or remove gifts from your wishlists.</p>
         </a>
 
         <a href="giver.html" class="menu-card giver-border">
@@ -114,7 +114,6 @@
     <a href="index.html" class="logout-link">Log Out</a>
 
     <script>
-        // Optional: Show the username if they just logged in
         const user = localStorage.getItem('giftlink_user');
         if (user) {
             document.getElementById('welcome').innerText = "Welcome back, " + user;
