@@ -14,22 +14,21 @@
         
         /* List Card Style */
         .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); cursor: pointer; }
-        .list-card:active { transform: scale(0.98); }
         
         /* Gift Item Style */
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--primary); }
         .claim-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; }
         .claimed { opacity: 0.5; background: #dfe6e9 !important; border-left-color: #b2bec3; }
-        .back-to-lists { color: var(--primary); font-size: 12px; font-weight: bold; margin-bottom: 10px; display: block; text-decoration: none; }
+        .back-btn { color: var(--primary); font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block; text-decoration: none; }
     </style>
 </head>
 <body onload="checkUrlParams()">
     <a href="menu.html" class="nav-link">Main Menu</a>
     <h2>Find a Friend</h2>
 
-    <div id="searchSection" class="box">
+    <div id="searchBox" class="box">
         <input type="text" id="friendName" placeholder="Enter friend's username...">
-        <button class="search-btn" onclick="searchUserLists()">SEARCH LISTS</button>
+        <button class="search-btn" onclick="searchUser()">SEARCH</button>
     </div>
 
     <div id="displayArea"></div>
@@ -40,15 +39,13 @@
 
         function checkUrlParams() {
             const params = new URLSearchParams(window.location.search);
-            const searchUser = params.get('search');
-            if (searchUser) {
-                document.getElementById('friendName').value = searchUser;
-                searchUserLists();
+            if (params.get('search')) {
+                document.getElementById('friendName').value = params.get('search');
+                searchUser();
             }
         }
 
-        // 1. Fetch ALL gifts and group them by the unique list name
-        async function searchUserLists() {
+        async function searchUser() {
             const user = document.getElementById('friendName').value.trim();
             if(!user) return;
 
@@ -56,37 +53,33 @@
                 method: 'GET',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
-            const allGifts = await response.json();
+            const data = await response.json();
             
-            // Extract unique list names (e.g., Birthday 2026, Christmas)
-            const uniqueLists = [...new Set(allGifts.map(g => g.list_title))];
-            
-            showListsMenu(uniqueLists, user);
+            // Get unique list names (e.g. "Sian_Birthday 2026")
+            const uniqueListIDs = [...new Set(data.map(item => item.list_title))];
+            renderListSelection(uniqueListIDs, user);
         }
 
-        // 2. Display the found lists as clickable cards
-        function showListsMenu(lists, username) {
+        function renderListSelection(listIDs, username) {
             const area = document.getElementById('displayArea');
-            if (lists.length === 0) {
-                area.innerHTML = '<p style="text-align:center; color:#b2bec3;">No lists found for this user.</p>';
+            if(listIDs.length === 0) {
+                area.innerHTML = '<p style="text-align:center; color:#b2bec3;">No lists found.</p>';
                 return;
             }
 
-            area.innerHTML = `<label style="font-size:11px; font-weight:bold; color:#b2bec3;">LISTS BY ${username.toUpperCase()}</label><br><br>`;
+            area.innerHTML = `<label style="font-size:11px; font-weight:bold; color:#b2bec3;">SELECT A LIST BY ${username.toUpperCase()}</label><br><br>`;
             
-            lists.forEach(fullID => {
-                const cleanName = fullID.split('_')[1] || 'General';
+            listIDs.forEach(fullID => {
+                const listTitle = fullID.split('_')[1] || "General";
                 area.innerHTML += `
-                    <div class="list-card" onclick="openSpecificList('${fullID}')">
-                        <b>${cleanName.toUpperCase()}</b>
-                        <span style="color:var(--secondary); font-weight:bold;">→</span>
+                    <div class="list-card" onclick="viewGifts('${fullID}')">
+                        <b>${listTitle.toUpperCase()}</b>
+                        <span style="color:var(--secondary)">VIEW →</span>
                     </div>`;
             });
         }
 
-        // 3. When a list is clicked, fetch only the items for that list
-        async function openSpecificList(fullID) {
-            const cleanTitle = fullID.split('_')[1];
+        async function viewGifts(fullID) {
             const response = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
                 method: 'GET',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
@@ -94,17 +87,16 @@
             const gifts = await response.json();
             
             const area = document.getElementById('displayArea');
-            area.innerHTML = `<a href="javascript:searchUserLists()" class="back-to-lists">← BACK TO ALL LISTS</a>
-                              <h3>${cleanTitle.toUpperCase()}</h3>`;
+            const listTitle = fullID.split('_')[1] || "General";
+            
+            area.innerHTML = `<a href="#" onclick="searchUser()" class="back-btn">← BACK TO LISTS</a>
+                              <h3>${listTitle.toUpperCase()}</h3>`;
             
             gifts.forEach(item => {
                 const isClaimed = item.is_nominated;
                 area.innerHTML += `
                     <div class="item-row ${isClaimed ? 'claimed' : ''}">
-                        <div>
-                            <b>${item.name}</b><br>
-                            <span style="color:#636e72">$${item.price}</span>
-                        </div>
+                        <div><b>${item.name}</b><br><span style="color:#636e72">$${item.price}</span></div>
                         ${isClaimed ? '<b>CLAIMED</b>' : `<button class="claim-btn" onclick="claimItem(${item.id}, '${fullID}')">CLAIM</button>`}
                     </div>`;
             });
@@ -112,17 +104,12 @@
 
         async function claimItem(id, listID) {
             if(!confirm("Claim this gift?")) return;
-            
             await fetch(`${URL_BASE}?id=eq.${id}`, {
                 method: 'PATCH',
-                headers: { 
-                    'apikey': KEY, 
-                    'Authorization': 'Bearer ' + KEY, 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_nominated: true })
             });
-            openSpecificList(listID);
+            viewGifts(listID);
         }
     </script>
 </body>
