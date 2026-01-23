@@ -1,92 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GIFTLINK</title>
+    <title>GIFTLINK - Find a List</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
         body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
-        .nav-link { text-decoration: none; color: var(--secondary); font-size: 14px; font-weight: bold; text-transform: uppercase; }
-        h2 { text-align: center; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; margin-top: 10px; }
-        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); display: flex; gap: 10px; }
-        input { flex: 1; padding: 14px; border: 2px solid #f1f2f6; border-radius: 12px; font-size: 16px; }
-        .search-btn { background: var(--secondary); color: white; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; }
-        
-        /* Preview Style */
-        #previewArea { text-align: center; margin-bottom: 20px; font-size: 13px; font-weight: bold; height: 20px; color: #636e72; }
-        .found { color: #00b894; }
-        
-        .card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid var(--primary); }
-        .buy-btn { background: #55efc4; color: #00b894; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; }
-        .sold-btn { background: #f1f2f6; color: #b2bec3; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; }
+        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        h2 { text-align: center; color: var(--secondary); letter-spacing: 2px; text-transform: uppercase; }
+        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .search-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--primary); }
+        .claim-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; }
+        .claimed { opacity: 0.5; background: #dfe6e9 !important; border-left-color: #b2bec3; }
     </style>
 </head>
-<body>
-    <a href="menu.html" class="nav-link">Home</a>
-    <h2>GIFTLINK</h2>
-    
-    <div class="box">
-        <input type="text" id="searchTitle" placeholder="Enter List Name..." oninput="previewSearch()" autocapitalize="none">
-        <button class="search-btn" onclick="search()">GO</button>
-    </div>
-    
-    <div id="previewArea">Type a list name...</div>
+<body onload="checkUrlParams()">
+    <a href="menu.html" class="nav-link">Back</a>
+    <h2>Find a Friend</h2>
 
-    <div id="results"></div>
+    <div class="box">
+        <input type="text" id="friendName" placeholder="Enter friend's username...">
+        <button class="search-btn" onclick="searchLists()">SEARCH LISTS</button>
+    </div>
+
+    <div id="resultsArea"></div>
 
     <script>
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
 
-        // The New Preview Function
-        async function previewSearch() {
-            const title = document.getElementById('searchTitle').value;
-            const preview = document.getElementById('previewArea');
-            if(title.length < 3) { preview.innerText = ""; return; }
+        // 1. Automatically search if the friend sent a "Share" link
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const searchUser = params.get('search');
+            if (searchUser) {
+                document.getElementById('friendName').value = searchUser;
+                searchLists();
+            }
+        }
 
-            const response = await fetch(`${URL_BASE}?list_title=eq.${title}&select=id`, { 
-                method: 'GET', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
+        // 2. Search for any list starting with that username
+        async function searchLists() {
+            const user = document.getElementById('friendName').value.trim();
+            if(!user) return;
+
+            // This tells the database: find lists starting with "User_"
+            const response = await fetch(`${URL_BASE}?list_title=ilike.${user}_*`, {
+                method: 'GET',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await response.json();
-            
-            if(data.length > 0) {
-                preview.innerHTML = `<span class="found">List Found! (${data.length} items)</span>`;
-            } else {
-                preview.innerText = "No list found yet...";
-            }
+            displayResults(data);
         }
 
-        async function search() {
-            const title = document.getElementById('searchTitle').value;
-            const area = document.getElementById('results');
-            area.innerHTML = "<p style='text-align:center'>Loading items...</p>";
+        function displayResults(data) {
+            const area = document.getElementById('resultsArea');
+            if (data.length === 0) {
+                area.innerHTML = '<p style="text-align:center; color:#b2bec3;">No lists found for this user.</p>';
+                return;
+            }
+
+            area.innerHTML = '<label style="font-size:11px; font-weight:bold; color:#b2bec3; margin-left:10px;">GIFT IDEAS</label>';
             
-            const response = await fetch(`${URL_BASE}?list_title=eq.${title}`, { 
-                method: 'GET', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
-            });
-            const data = await response.json(); area.innerHTML = '';
-            
-            data.forEach(gift => {
-                const button = gift.is_nominated ? `<button class="sold-btn">CLAIMED</button>` : `<button class="buy-btn" onclick="claim(${gift.id})">CLAIM</button>`;
-                area.innerHTML += `<div class="card"><div><b style="display:block; font-size:18px;">${gift.name}</b><span style="color: #636e72;">$${gift.price}</span></div>${button}</div>`;
+            data.forEach(item => {
+                const listName = item.list_title.split('_')[1] || 'General';
+                const isClaimed = item.is_nominated;
+                
+                area.innerHTML += `
+                    <div class="item-row ${isClaimed ? 'claimed' : ''}">
+                        <div>
+                            <small style="color:var(--secondary)">${listName.toUpperCase()}</small><br>
+                            <b>${item.name}</b><br>
+                            <span style="color:#636e72">$${item.price}</span>
+                        </div>
+                        ${isClaimed ? '<b>CLAIMED</b>' : `<button class="claim-btn" onclick="claimItem(${item.id})">CLAIM</button>`}
+                    </div>`;
             });
         }
 
-        async function claim(id) {
-            if(!confirm("Claim this gift?")) return;
-            const response = await fetch(`${URL_BASE}?id=eq.${id}`, { 
-                method: 'PATCH', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, 
-                body: JSON.stringify({ is_nominated: true }) 
+        async function claimItem(id) {
+            if(!confirm("Claim this gift? Your friend won't see who claimed it!")) return;
+            
+            await fetch(`${URL_BASE}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: { 
+                    'apikey': KEY, 
+                    'Authorization': 'Bearer ' + KEY, 
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({ is_nominated: true })
             });
-
-            if (response.ok) {
-                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff7675', '#74b9ff', '#55efc4'] });
-                setTimeout(search, 500);
-            }
+            searchLists();
         }
     </script>
 </body>
