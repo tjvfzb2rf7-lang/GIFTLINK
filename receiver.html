@@ -9,8 +9,6 @@
         .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 10px; }
         h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 5px 0; }
         .user-badge { text-align: center; font-size: 12px; color: #b2bec3; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; }
-        .share-row { text-align: center; margin-bottom: 20px; }
-        .share-btn { background: none; border: 1px solid var(--secondary); color: var(--secondary); padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; text-transform: uppercase; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #b2bec3; margin-left: 5px; }
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
@@ -26,10 +24,6 @@
     <h2>GIFTLINK</h2>
     <div id="userDisplay" class="user-badge">Personal Wishlist</div>
     
-    <div class="share-row">
-        <button class="share-btn" onclick="shareList()">Share My List</button>
-    </div>
-
     <div class="box">
         <label>Gift Item</label>
         <input type="text" id="name" placeholder="What do you want?">
@@ -46,17 +40,6 @@
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
 
-        async function shareList() {
-            const currentUser = localStorage.getItem('giftlink_user');
-            const shareData = {
-                title: 'My GIFTLINK Wishlist',
-                text: 'Check out my wishlist!',
-                // This shares the link and tells the friend to search for YOUR username
-                url: window.location.href.replace('receiver.html', 'giver.html') + '?search=' + currentUser
-            };
-            try { await navigator.share(shareData); } catch (err) { alert('Share your username: ' + currentUser); }
-        }
-
         async function sendData() {
             const nameField = document.getElementById('name');
             const priceField = document.getElementById('price');
@@ -69,11 +52,15 @@
                 is_nominated: false
             };
 
-                await fetch(URL_BASE, {
-        method: 'POST',
-        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }); // <--- The bracket must close AFTER the body
+            await fetch(URL_BASE, {
+                method: 'POST',
+                headers: { 
+                    'apikey': KEY, 
+                    'Authorization': 'Bearer ' + KEY, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(payload)
+            });
             
             nameField.value = '';
             priceField.value = '';
@@ -84,7 +71,8 @@
             const currentUser = localStorage.getItem('giftlink_user');
             if(!currentUser) return;
             
-            document.getElementById('userDisplay').innerText = currentUser + "'s Wishlist";
+            const display = document.getElementById('userDisplay');
+            if(display) display.innerText = currentUser + "'s Wishlist";
             
             const response = await fetch(`${URL_BASE}?list_title=eq.${currentUser}`, {
                 method: 'GET',
