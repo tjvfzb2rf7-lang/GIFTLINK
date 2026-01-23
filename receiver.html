@@ -69,11 +69,11 @@
                 is_nominated: false
             };
 
-            await fetch(URL_BASE, {
-                method: 'POST',
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+                await fetch(URL_BASE, {
+        method: 'POST',
+        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }); // <--- The bracket must close AFTER the body
             
             nameField.value = '';
             priceField.value = '';
