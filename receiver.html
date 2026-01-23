@@ -37,7 +37,7 @@
         <input type="text" id="price" placeholder="0.00" inputmode="decimal">
 
         <label>Link to Product (URL)</label>
-        <input type="text" id="url" placeholder="https://amazon.com/item...">
+        <input type="text" id="url" placeholder="Paste link here (Amazon, etc.)">
         
         <button class="add-btn" onclick="sendData()">ADD TO MY LIST</button>
     </div>
@@ -56,7 +56,7 @@
         function shareList() {
             const shareUrl = window.location.origin + window.location.pathname.replace('receiver.html', 'giver.html') + `?search=${currentUser}`;
             if (navigator.share) {
-                navigator.share({ title: `GIFTLINK: ${currentListName}`, url: shareUrl }).catch(err => console.log(err));
+                navigator.share({ title: `My GIFTLINK`, url: shareUrl });
             } else {
                 prompt("Copy link:", shareUrl);
             }
@@ -73,7 +73,7 @@
                 list_title: uniqueListID,
                 name: nameField.value,
                 price: priceField.value || "0.00",
-                description: urlField.value, // We store the URL in the description field
+                description: urlField.value, // Saves the link here
                 is_nominated: false
             };
 

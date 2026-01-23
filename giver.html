@@ -16,7 +16,7 @@
         .claim-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; }
         .claimed { opacity: 0.5; background: #dfe6e9 !important; border-left-color: #b2bec3; }
         .back-btn { color: var(--primary); font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block; text-decoration: none; }
-        .product-link { color: var(--secondary); text-decoration: none; font-size: 11px; font-weight: bold; display: block; margin-top: 5px; }
+        .link-text { display: block; color: var(--secondary); font-size: 11px; text-decoration: none; font-weight: bold; margin-top: 5px; }
     </style>
 </head>
 <body onload="checkUrlParams()">
@@ -77,7 +77,7 @@
             gifts.forEach(item => {
                 const isClaimed = item.is_nominated;
                 const link = item.description && item.description.startsWith('http') 
-                    ? `<a href="${item.description}" target="_blank" class="product-link">VIEW PRODUCT 🔗</a>` : '';
+                    ? `<a href="${item.description}" target="_blank" class="link-text">VIEW PRODUCT 🔗</a>` : '';
                 
                 area.innerHTML += `
                     <div class="item-row ${isClaimed ? 'claimed' : ''}">
