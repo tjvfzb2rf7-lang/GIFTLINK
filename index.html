@@ -1,45 +1,54 @@
 <script>
-async function handleLogin() {
-    const user = document.getElementById('username').value.trim().toLowerCase();
-    const pin = document.getElementById('pin').value.trim();
+const URL_USERS = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users';
+const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+
+async function login() {
+    const userInput = document.getElementById('username').value.trim().toLowerCase();
+    const pinInput = document.getElementById('pin').value.trim();
     const btn = document.getElementById('loginBtn');
 
-    if(!user || !pin) return alert("Enter Username and PIN");
+    if(!userInput || !pinInput) return alert("Enter Username and PIN");
 
-    btn.innerText = "VERIFYING...";
-    
-    // 1. Check if user exists in Supabase
-    const res = await fetch(`https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users?username=eq.${user}`, {
-        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-    });
-    const data = await res.json();
+    btn.innerText = "CHECKING...";
 
-    if (data.length > 0) {
-        // 2. User exists, check PIN
-        if (data[0].pin === pin) {
-            localStorage.setItem('giftlink_user', user);
-            window.location.href = 'lists.html';
+    try {
+        // 1. Look for user in Supabase
+        const res = await fetch(`${URL_USERS}?username=eq.${userInput}`, {
+            headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+        });
+        const data = await res.json();
+
+        if (data.length > 0) {
+            // 2. User exists - check PIN
+            if (data[0].pin === pinInput) {
+                localStorage.setItem('giftlink_user', userInput);
+                window.location.href = 'lists.html';
+            } else {
+                alert("Incorrect PIN!");
+            }
         } else {
-            alert("Incorrect PIN!");
-            btn.innerText = "LOG IN";
+            // 3. User doesn't exist - Create new account
+            if(confirm("Username not found. Register as a new user?")) {
+                const createRes = await fetch(URL_USERS, {
+                    method: 'POST',
+                    headers: { 
+                        'apikey': KEY, 
+                        'Authorization': 'Bearer ' + KEY, 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ username: userInput, pin: pinInput })
+                });
+                
+                if(createRes.ok) {
+                    localStorage.setItem('giftlink_user', userInput);
+                    window.location.href = 'lists.html';
+                }
+            }
         }
-    } else {
-        // 3. New User? Ask to create account
-        if(confirm("User not found. Create new account with this PIN?")) {
-            await fetch(`https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users`, {
-                method: 'POST',
-                headers: { 
-                    'apikey': KEY, 
-                    'Authorization': 'Bearer ' + KEY, 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ username: user, pin: pin })
-            });
-            localStorage.setItem('giftlink_user', user);
-            window.location.href = 'lists.html';
-        } else {
-            btn.innerText = "LOG IN";
-        }
+    } catch (err) {
+        alert("Database error. Make sure your 'users' table has 'username' and 'pin' columns.");
+    } finally {
+        btn.innerText = "LOG IN";
     }
 }
 </script>
