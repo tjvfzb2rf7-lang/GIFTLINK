@@ -10,49 +10,71 @@
         h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; }
-        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .open-btn { background: var(--secondary); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 12px; }
+        .create-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .btn-group { display: flex; gap: 8px; }
+        .open-btn { background: var(--secondary); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body onload="loadMyLists()">
-    <a href="menu.html" class="nav-link">Back</a>
+<body onload="fetchLists()">
+    <a href="menu.html" class="nav-link">← Back</a>
     <h2>My Lists</h2>
 
     <div class="box">
-        <input type="text" id="newListName" placeholder="e.g. Christmas or Birthday">
-        <button class="add-btn" onclick="createNewList()">CREATE NEW LIST</button>
+        <input type="text" id="newList" placeholder="e.g. Christmas or Birthday">
+        <button class="create-btn" onclick="createList()">CREATE NEW LIST</button>
     </div>
 
-    <div id="myListsArea"></div>
+    <div id="listArea"></div>
 
     <script>
-        function createNewList() {
-            const name = document.getElementById('newListName').value.trim();
+        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
+        const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+        const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
+
+        async function createList() {
+            const name = document.getElementById('newList').value.trim();
             if(!name) return;
-            
-            // We save list names in LocalStorage for this user
-            let lists = JSON.parse(localStorage.getItem('my_gift_lists') || "[]");
-            if(!lists.includes(name)) {
-                lists.push(name);
-                localStorage.setItem('my_gift_lists', JSON.stringify(lists));
-            }
-            document.getElementById('newListName').value = '';
-            loadMyLists();
+            // We create a dummy item to "initialize" the list title in the DB
+            await fetch(URL_BASE, {
+                method: 'POST',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ list_title: `${currentUser}_${name}`, name: 'Welcome Item', price: '0', is_nominated: false })
+            });
+            document.getElementById('newList').value = '';
+            fetchLists();
         }
 
-        function loadMyLists() {
-            const lists = JSON.parse(localStorage.getItem('my_gift_lists') || "[]");
-            const area = document.getElementById('myListsArea');
-            area.innerHTML = lists.length ? '' : '<p style="text-align:center; color:#b2bec3;">No lists created yet.</p>';
+        async function fetchLists() {
+            const res = await fetch(`${URL_BASE}?list_title=ilike.${currentUser}_*`, {
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+            });
+            const data = await res.json();
+            const uniqueLists = [...new Set(data.map(i => i.list_title))];
+            const area = document.getElementById('listArea');
+            area.innerHTML = '';
             
-            lists.forEach(list => {
+            uniqueLists.forEach(fullID => {
+                const title = fullID.split('_')[1];
                 area.innerHTML += `
                     <div class="list-card">
-                        <b>${list.toUpperCase()}</b>
-                        <a href="receiver.html?list=${encodeURIComponent(list)}" class="open-btn">OPEN LIST</a>
+                        <b>${title.toUpperCase()}</b>
+                        <div class="btn-group">
+                            <button class="open-btn" onclick="location.href='receiver.html?list=${title}'">OPEN</button>
+                            <button class="delete-btn" onclick="deleteFullList('${fullID}')">DELETE</button>
+                        </div>
                     </div>`;
             });
+        }
+
+        async function deleteFullList(id) {
+            if(!confirm("Delete this list and all its gifts?")) return;
+            await fetch(`${URL_BASE}?list_title=eq.${id}`, { 
+                method: 'DELETE', 
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
+            });
+            fetchLists();
         }
     </script>
 </body>
