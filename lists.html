@@ -10,20 +10,22 @@
         h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .create-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; width: 100%; }
-        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .create-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); animation: fadeIn 0.3s ease; }
         .btn-group { display: flex; gap: 8px; }
-        .open-btn { background: var(--secondary); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 12px; }
-        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .open-btn { background: var(--secondary); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 12px; }
+        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body onload="fetchLists()">
     <a href="menu.html" class="nav-link">← Back</a>
-    <h2>My Lists</h2>
+    <h2>My Wishlists</h2>
 
     <div class="box">
-        <input type="text" id="newList" placeholder="e.g. Christmas or Birthday">
-        <button class="create-btn" id="createBtn" onclick="createList()">CREATE NEW LIST</button>
+        <label style="font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase;">New List Name</label>
+        <input type="text" id="newList" placeholder="e.g. Birthday 2026">
+        <button class="create-btn" id="createBtn" onclick="createList()">CREATE LIST</button>
     </div>
 
     <div id="listArea"></div>
@@ -37,34 +39,27 @@
             const nameInput = document.getElementById('newList');
             const btn = document.getElementById('createBtn');
             const name = nameInput.value.trim();
-            if(!name) return alert("Please enter a list name");
+            if(!name) return alert("Please name your list!");
 
             btn.innerText = "SAVING...";
             btn.disabled = true;
 
-            const response = await fetch(URL_BASE, {
+            // Create a "Header" item so the list exists in the database
+            await fetch(URL_BASE, {
                 method: 'POST',
-                headers: { 
-                    'apikey': KEY, 
-                    'Authorization': 'Bearer ' + KEY, 
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal' 
-                },
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     list_title: `${currentUser}_${name}`, 
-                    name: 'LIST_INITIALIZED', 
+                    name: 'LIST_HEADER', 
                     price: '0', 
                     is_nominated: false 
                 })
             });
 
-            if(response.ok) {
-                window.location.href = `receiver.html?list=${encodeURIComponent(name)}`;
-            } else {
-                alert("Database Error. Please try a different name.");
-                btn.innerText = "CREATE NEW LIST";
-                btn.disabled = false;
-            }
+            nameInput.value = '';
+            btn.innerText = "CREATE LIST";
+            btn.disabled = false;
+            fetchLists(); // Refresh the list area immediately
         }
 
         async function fetchLists() {
@@ -73,18 +68,22 @@
             });
             const data = await res.json();
             
-            // Get unique list names by stripping the username_ prefix
+            // Extract unique list titles
             const uniqueTitles = [...new Set(data.map(i => i.list_title))];
             const area = document.getElementById('listArea');
-            area.innerHTML = '';
+            area.innerHTML = '<label style="font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; margin-bottom: 10px; display: block;">Your Active Lists</label>';
             
+            if(uniqueTitles.length === 0) {
+                area.innerHTML += '<p style="text-align:center; color:#ccc; margin-top:20px;">No lists yet. Create one above!</p>';
+            }
+
             uniqueTitles.forEach(fullID => {
-                const title = fullID.replace(`${currentUser}_`, "");
+                const displayName = fullID.replace(`${currentUser}_`, "");
                 area.innerHTML += `
                     <div class="list-card">
-                        <b>${title.toUpperCase()}</b>
+                        <b>${displayName.toUpperCase()}</b>
                         <div class="btn-group">
-                            <a href="receiver.html?list=${encodeURIComponent(title)}" class="open-btn">OPEN</a>
+                            <a href="receiver.html?list=${encodeURIComponent(displayName)}" class="open-btn">OPEN</a>
                             <button class="delete-btn" onclick="deleteFullList('${fullID}')">DELETE</button>
                         </div>
                     </div>`;
@@ -92,7 +91,7 @@
         }
 
         async function deleteFullList(fullID) {
-            if(!confirm("Delete this entire list?")) return;
+            if(!confirm("Are you sure? This deletes the list and all gifts inside it.")) return;
             await fetch(`${URL_BASE}?list_title=eq.${fullID}`, { 
                 method: 'DELETE', 
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 

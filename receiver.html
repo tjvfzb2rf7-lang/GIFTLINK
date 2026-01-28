@@ -6,12 +6,11 @@
     <style>
         :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
         body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
         h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0; }
-        .user-badge { text-align: center; font-size: 12px; color: #b2bec3; text-transform: uppercase; margin-bottom: 20px; font-weight: bold; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #b2bec3; margin-left: 5px; }
+        label { font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; margin-left: 5px; }
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
         .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
@@ -23,16 +22,15 @@
 </head>
 <body onload="fetchItems()">
     <div class="nav-header">
-        <a href="lists.html" class="nav-link">← My Lists</a>
+        <a href="lists.html" class="nav-link">← All Lists</a>
+        <div id="listTitleDisplay" style="font-weight: bold; color: #b2bec3; font-size: 12px;">LIST</div>
     </div>
-    <h2>GIFTLINK</h2>
-    <div id="userDisplay" class="user-badge">Loading...</div>
-    
+
     <div class="box">
-        <label>Gift Item</label><input type="text" id="name" placeholder="What do you want?">
-        <label>Estimated Price</label><input type="text" id="price" placeholder="0.00">
-        <label>Link (URL)</label><input type="text" id="url" placeholder="Paste link here">
-        <button class="add-btn" id="addBtn" onclick="sendData()">ADD TO MY LIST</button>
+        <label>Gift Name</label><input type="text" id="name" placeholder="What are you wishing for?">
+        <label>Price</label><input type="text" id="price" placeholder="0.00">
+        <label>Product Link (URL)</label><input type="text" id="url" placeholder="Paste link here">
+        <button class="add-btn" id="addBtn" onclick="sendData()">ADD GIFT</button>
     </div>
 
     <div id="itemList"></div>
@@ -41,9 +39,9 @@
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
         const params = new URLSearchParams(window.location.search);
-        const currentListName = params.get('list') || 'General';
+        const listName = params.get('list') || 'General';
         const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
-        const uniqueListID = `${currentUser}_${currentListName}`;
+        const uniqueListID = `${currentUser}_${listName}`;
 
         async function sendData() {
             const n = document.getElementById('name').value;
@@ -68,45 +66,44 @@
             document.getElementById('name').value = ''; 
             document.getElementById('price').value = ''; 
             document.getElementById('url').value = '';
-            btn.innerText = "ADD TO MY LIST";
+            btn.innerText = "ADD GIFT";
             btn.disabled = false;
             fetchItems();
         }
 
         async function fetchItems() {
-            document.getElementById('userDisplay').innerText = currentListName.toUpperCase();
+            document.getElementById('listTitleDisplay').innerText = listName.toUpperCase();
             const res = await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, {
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await res.json();
             const area = document.getElementById('itemList');
             
-            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;"><label>My Items</label></div>`;
+            // Filter out the system header item
+            const filtered = data.filter(i => i.name !== 'LIST_HEADER');
             
-            // Filter out system placeholders
-            const filtered = data.filter(i => i.name !== 'LIST_INITIALIZED');
+            area.innerHTML = '<label style="font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase;">Gifts in this list</label>';
 
             if(filtered.length === 0) {
-                html += `<p style="text-align:center; color:#ccc; font-size:12px; margin-top:20px;">Your list is empty. Add something above!</p>`;
+                area.innerHTML += `<p style="text-align:center; color:#ccc; font-size:12px; margin-top:20px;">No gifts yet. Add one!</p>`;
             }
 
             filtered.forEach(item => {
-                const link = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` : '';
-                html += `
+                const link = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-preview">Link 🔗</a>` : '';
+                area.innerHTML += `
                     <div class="item-row">
                         <div><b>${item.name}</b>${link}<br><span>$${item.price}</span></div>
                         <div style="display:flex; gap:5px;">
                             <button class="btn-action edit-btn" onclick="editItem(${item.id}, '${item.name}', '${item.price}')">EDIT</button>
-                            <button class="btn-action remove-btn" onclick="deleteItem(${item.id})">REMOVE</button>
+                            <button class="btn-action remove-btn" onclick="deleteItem(${item.id})">DEL</button>
                         </div>
                     </div>`;
             });
-            area.innerHTML = html;
         }
 
         async function editItem(id, name, price) {
-            const n = prompt("New Name:", name);
-            const p = prompt("New Price:", price);
+            const n = prompt("Change name:", name);
+            const p = prompt("Change price:", price);
             if(n === null) return;
             await fetch(`${URL_BASE}?id=eq.${id}`, {
                 method: 'PATCH',
