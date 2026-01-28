@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIFTLINK - Find a Friend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root { --primary: #74b9ff; --secondary: #ff7675; --bg: #fdfcfb; }
+        body { font-family: sans-serif; padding: 20px; background: var(--bg); text-align: center; }
+        .search-box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .gift-card { background: white; padding: 15px; margin-top: 10px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .claim-btn { background: var(--secondary); color: white; padding: 8px 15px; border-radius: 10px; border: none; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body onload="checkSharedLink()">
+    <h2 style="color: var(--primary);">FIND A FRIEND</h2>
+    <div class="search-box">
+        <input type="text" id="friendName" placeholder="Enter Friend's Username">
+        <input type="text" id="listTitle" placeholder="Enter List Name (e.g. Xmas)">
+        <button onclick="searchGifts()">SEARCH</button>
+    </div>
+    <div id="results" style="margin-top: 20px;"></div>
+
+    <script>
+        const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
+
+        function checkSharedLink() {
+            const params = new URLSearchParams(window.location.search);
+            const u = params.get('user');
+            const l = params.get('list');
+            if(u && l) {
+                document.getElementById('friendName').value = u;
+                document.getElementById('listTitle').value = l;
+                searchGifts();
+            }
+        }
+
+        async function searchGifts() {
+            const user = document.getElementById('friendName').value.trim().toLowerCase();
+            const list = document.getElementById('listTitle').value.trim();
+            const fullID = `${user}_${list}`;
+
+            const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+            });
+            const data = await res.json();
+            // Hide SYSTEM_HEADER from friends too
+            const gifts = data.filter(item => item.name !== 'SYSTEM_HEADER');
+
+            let html = `<h3>${list.toUpperCase()}</h3>`;
+            gifts.forEach(item => {
+                html += `<div class="gift-card">
+                    <div><b>${item.name}</b><br>$${item.price}</div>
+                    <button class="claim-btn" onclick="alert('Item Claimed!')">CLAIM</button>
+                </div>`;
+            });
+            document.getElementById('results').innerHTML = html || '<p>No gifts found for this list.</p>';
+        }
+    </script>
+</body>
+</html>
