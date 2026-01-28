@@ -1,75 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>GIFTLINK - Welcome</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
-        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: var(--bg); color: var(--text); }
-        h1 { font-size: 32px; letter-spacing: 4px; color: var(--primary); text-transform: uppercase; margin-bottom: 20px; }
-        .box { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 85%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; text-align: center; }
-        button { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }
-        .toggle-link { margin-top: 20px; font-size: 13px; color: var(--secondary); cursor: pointer; text-decoration: underline; text-transform: uppercase; font-weight: bold; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
+<script>
+async function handleLogin() {
+    const user = document.getElementById('username').value.trim().toLowerCase();
+    const pin = document.getElementById('pin').value.trim();
+    const btn = document.getElementById('loginBtn');
 
-    <h1>GIFTLINK</h1>
+    if(!user || !pin) return alert("Enter Username and PIN");
 
-    <div id="loginForm" class="box">
-        <h3>LOGIN</h3>
-        <input type="text" id="loginUser" placeholder="Username" autocapitalize="none">
-        <input type="password" id="loginPin" placeholder="4-Digit PIN" maxlength="4" inputmode="numeric">
-        <button onclick="handleLogin()">ENTER</button>
-        <div class="toggle-link" onclick="toggleForm()">Create New Account</div>
-    </div>
+    btn.innerText = "VERIFYING...";
+    
+    // 1. Check if user exists in Supabase
+    const res = await fetch(`https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users?username=eq.${user}`, {
+        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+    });
+    const data = await res.json();
 
-    <div id="signupForm" class="box hidden">
-        <h3>CREATE ACCOUNT</h3>
-        <input type="text" id="newUser" placeholder="Choose Username" autocapitalize="none">
-        <input type="password" id="newPin" placeholder="Set 4-Digit PIN" maxlength="4" inputmode="numeric">
-        <button style="background: var(--secondary);" onclick="handleSignUp()">SAVE & LOGIN</button>
-        <div class="toggle-link" onclick="toggleForm()">Back to Login</div>
-    </div>
-
-    <script>
-        function toggleForm() {
-            document.getElementById('loginForm').classList.toggle('hidden');
-            document.getElementById('signupForm').classList.toggle('hidden');
-        }
-
-        function handleSignUp() {
-            const user = document.getElementById('newUser').value.trim().toLowerCase();
-            const pin = document.getElementById('newPin').value;
-
-            if (user.length < 2 || pin.length !== 4) {
-                alert("Please enter a valid username and 4-digit PIN");
-                return;
-            }
-
-            // Save to browser memory
+    if (data.length > 0) {
+        // 2. User exists, check PIN
+        if (data[0].pin === pin) {
             localStorage.setItem('giftlink_user', user);
-            localStorage.setItem('giftlink_pin', pin);
-
-            alert("Account Created!");
-            window.location.href = "menu.html";
+            window.location.href = 'lists.html';
+        } else {
+            alert("Incorrect PIN!");
+            btn.innerText = "LOG IN";
         }
-
-        function handleLogin() {
-            const user = document.getElementById('loginUser').value.trim().toLowerCase();
-            const pin = document.getElementById('loginPin').value;
-
-            const savedUser = localStorage.getItem('giftlink_user');
-            const savedPin = localStorage.getItem('giftlink_pin');
-
-            if (user === savedUser && pin === savedPin) {
-                window.location.href = "menu.html";
-            } else {
-                alert("Invalid Details. Did you create an account yet?");
-            }
+    } else {
+        // 3. New User? Ask to create account
+        if(confirm("User not found. Create new account with this PIN?")) {
+            await fetch(`https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users`, {
+                method: 'POST',
+                headers: { 
+                    'apikey': KEY, 
+                    'Authorization': 'Bearer ' + KEY, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ username: user, pin: pin })
+            });
+            localStorage.setItem('giftlink_user', user);
+            window.location.href = 'lists.html';
+        } else {
+            btn.innerText = "LOG IN";
         }
-    </script>
-</body>
-</html>
+    }
+}
+</script>
