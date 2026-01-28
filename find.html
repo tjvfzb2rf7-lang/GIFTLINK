@@ -4,59 +4,97 @@
     <title>GIFTLINK - Find a Friend</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root { --primary: #74b9ff; --secondary: #ff7675; --bg: #fdfcfb; }
-        body { font-family: sans-serif; padding: 20px; background: var(--bg); text-align: center; }
-        .search-box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .gift-card { background: white; padding: 15px; margin-top: 10px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
-        .claim-btn { background: var(--secondary); color: white; padding: 8px 15px; border-radius: 10px; border: none; font-size: 12px; font-weight: bold; }
+        :root { --primary: #74b9ff; --secondary: #ff7675; --bg: #fdfcfb; --text: #2d3436; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); color: var(--text); text-align: center; }
+        
+        .nav-header { text-align: left; margin-bottom: 20px; }
+        .nav-link { text-decoration: none; color: var(--primary); font-size: 11px; font-weight: bold; text-transform: uppercase; }
+
+        .search-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        h2 { color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-top: 0; }
+        
+        input { width: 100%; padding: 14px; margin: 8px 0 15px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .search-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        
+        .list-label { text-align: left; font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        
+        .gift-card { background: white; padding: 20px; margin-top: 12px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-left: 5px solid var(--secondary); }
+        .gift-info b { font-size: 18px; color: var(--text); }
+        .gift-info small { color: #636e72; font-size: 14px; }
+        
+        .claim-btn { background: var(--secondary); color: white; padding: 10px 18px; border-radius: 12px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .claim-btn:active { transform: scale(0.95); opacity: 0.8; }
     </style>
 </head>
-<body onload="checkSharedLink()">
-    <h2 style="color: var(--primary);">FIND A FRIEND</h2>
-    <div class="search-box">
-        <input type="text" id="friendName" placeholder="Enter Friend's Username">
-        <input type="text" id="listTitle" placeholder="Enter List Name (e.g. Xmas)">
-        <button onclick="searchGifts()">SEARCH</button>
+<body>
+    <div class="nav-header">
+        <a href="index.html" class="nav-link">← Main Menu</a>
     </div>
-    <div id="results" style="margin-top: 20px;"></div>
+
+    <div class="search-box">
+        <h2>Find a Friend</h2>
+        <input type="text" id="friendName" placeholder="Friend's Username (e.g. Sian)">
+        <input type="text" id="listTitle" placeholder="List Name (e.g. Xmas)">
+        <button class="search-btn" onclick="searchGifts()">Search List</button>
+    </div>
+
+    <div id="resultsArea" style="display:none;">
+        <span id="listNameHeading" class="list-label"></span>
+        <div id="results"></div>
+    </div>
 
     <script>
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
 
-        function checkSharedLink() {
-            const params = new URLSearchParams(window.location.search);
-            const u = params.get('user');
-            const l = params.get('list');
-            if(u && l) {
-                document.getElementById('friendName').value = u;
-                document.getElementById('listTitle').value = l;
-                searchGifts();
-            }
-        }
-
         async function searchGifts() {
             const user = document.getElementById('friendName').value.trim().toLowerCase();
             const list = document.getElementById('listTitle').value.trim();
+            
+            if(!user || !list) return alert("Please fill in both fields!");
+
             const fullID = `${user}_${list}`;
+            const resultsDiv = document.getElementById('results');
+            const resultsArea = document.getElementById('resultsArea');
+            const heading = document.getElementById('listNameHeading');
 
-            const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-            });
-            const data = await res.json();
-            // Hide SYSTEM_HEADER from friends too
-            const gifts = data.filter(item => item.name !== 'SYSTEM_HEADER');
+            try {
+                const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
+                    headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+                });
+                const data = await res.json();
 
-            let html = `<h3>${list.toUpperCase()}</h3>`;
-            gifts.forEach(item => {
-                html += `<div class="gift-card">
-                    <div><b>${item.name}</b><br>$${item.price}</div>
-                    <button class="claim-btn" onclick="alert('Item Claimed!')">CLAIM</button>
-                </div>`;
-            });
-            document.getElementById('results').innerHTML = html || '<p>No gifts found for this list.</p>';
+                // ⭐ REMOVES SYSTEM_HEADER FROM THE DISPLAY
+                const cleanGifts = data.filter(item => item.name !== 'SYSTEM_HEADER');
+
+                resultsArea.style.display = 'block';
+                heading.innerText = list.toUpperCase();
+
+                if(cleanGifts.length === 0) {
+                    resultsDiv.innerHTML = '<p style="color:#b2bec3; margin-top:20px;">No gifts found for this list.</p>';
+                    return;
+                }
+
+                let html = '';
+                cleanGifts.forEach(item => {
+                    html += `
+                        <div class="gift-card">
+                            <div class="gift-info">
+                                <b>${item.name}</b><br>
+                                <small>$${item.price || '0'}</small>
+                            </div>
+                            <button class="claim-btn" onclick="claimGift('${item.name}')">CLAIM</button>
+                        </div>`;
+                });
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                alert("Error connecting to database. Please try again.");
+            }
+        }
+
+        function claimGift(giftName) {
+            // This is a placeholder for now - we can make this update Supabase later!
+            alert("Success! You've claimed: " + giftName);
         }
     </script>
 </body>

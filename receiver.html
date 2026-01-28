@@ -32,7 +32,7 @@
         <input type="text" id="gUrl" placeholder="https://...">
         
         <button class="add-btn" id="addBtn" onclick="addGift()">ADD GIFT</button>
-        <button class="share-btn" onclick="shareList()">📤 SHARE WISHLIST</button>
+        <button class="share-btn" onclick="shareToLogin()">📤 SHARE LOGIN LINK</button>
     </div>
 
     <div id="itemList"></div>
@@ -46,28 +46,12 @@
         const user = localStorage.getItem('giftlink_user') || 'anonymous';
         const fullID = `${user}_${listName}`;
 
-        async function addGift() {
-            const name = document.getElementById('gName').value.trim();
-            if(!name) return alert("Enter a name");
-            const res = await fetch(URL_BASE, {
-                method: 'POST',
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    list_title: fullID, name: name, 
-                    price: document.getElementById('gPrice').value || "0", 
-                    url: document.getElementById('gUrl').value || "", is_nominated: false 
-                })
-            });
-            if(res.ok) { fetchItems(); document.getElementById('gName').value = ''; }
-        }
-
         async function fetchItems() {
             document.getElementById('listDisplay').innerText = listName.toUpperCase();
             const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await res.json();
-            // Hide SYSTEM_HEADER from your view
             const realGifts = data.filter(item => item.name !== 'SYSTEM_HEADER');
             
             let html = '';
@@ -80,17 +64,33 @@
             document.getElementById('itemList').innerHTML = html || '<p style="text-align:center;color:#ccc;">No gifts yet.</p>';
         }
 
+        async function addGift() {
+            const name = document.getElementById('gName').value.trim();
+            if(!name) return alert("Enter a name");
+            await fetch(URL_BASE, {
+                method: 'POST',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    list_title: fullID, name: name, 
+                    price: document.getElementById('gPrice').value || "0", 
+                    url: document.getElementById('gUrl').value || "", is_nominated: false 
+                })
+            });
+            document.getElementById('gName').value = '';
+            fetchItems();
+        }
+
         async function deleteGift(id) {
             if(!confirm("Remove?")) return;
             await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             fetchItems();
         }
 
-        function shareList() {
-            const currentUrl = window.location.href;
-            const shareLink = currentUrl.replace('receiver.html', 'find.html') + `&user=${user}`;
-            navigator.clipboard.writeText(shareLink).then(() => {
-                alert("Link copied! Share it with your friends. 🎁");
+        function shareToLogin() {
+            // This copies the link to your main index.html (Login page)
+            const loginUrl = window.location.origin + window.location.pathname.replace('receiver.html', 'index.html');
+            navigator.clipboard.writeText(loginUrl).then(() => {
+                alert("Login link copied! Tell your friends to log in and search for you.");
             });
         }
     </script>
