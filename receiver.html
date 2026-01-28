@@ -8,38 +8,28 @@
         body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
-        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0 0 5px 0; }
-        .user-badge { text-align: center; font-size: 12px; color: #b2bec3; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; font-weight: bold; }
+        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+        .user-badge { text-align: center; font-size: 12px; color: #b2bec3; text-transform: uppercase; margin-bottom: 20px; font-weight: bold; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #b2bec3; margin-left: 5px; }
+        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #b2bec3; }
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .add-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary), #fab1a0); color: white; border: none; border-radius: 15px; font-weight: 800; font-size: 16px; }
-        .share-btn { background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 800; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .del-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        .del-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; }
         .link-preview { font-size: 11px; color: var(--secondary); text-decoration: none; display: block; margin-top: 4px; font-weight: bold; }
     </style>
 </head>
 <body onload="fetchItems()">
-
     <div class="nav-header">
         <a href="lists.html" class="nav-link">← My Lists</a>
-        <button class="share-btn" onclick="shareList()">Share List 📤</button>
     </div>
-
     <h2>GIFTLINK</h2>
-    <div id="userDisplay" class="user-badge">Loading List...</div>
+    <div id="userDisplay" class="user-badge">Loading...</div>
     
     <div class="box">
-        <label>Gift Item</label>
-        <input type="text" id="name" placeholder="What do you want?">
-        
-        <label>Estimated Price</label>
-        <input type="text" id="price" placeholder="0.00" inputmode="decimal">
-
-        <label>Link to Product (URL)</label>
-        <input type="text" id="url" placeholder="Paste link here (Amazon, Apple, etc.)">
-        
+        <label>Gift Item</label><input type="text" id="name">
+        <label>Price</label><input type="text" id="price" placeholder="0.00">
+        <label>Link (URL)</label><input type="text" id="url" placeholder="Paste link here">
         <button class="add-btn" onclick="sendData()">ADD TO MY LIST</button>
     </div>
 
@@ -48,80 +38,55 @@
     <script>
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentListName = urlParams.get('list') || 'General';
+        const params = new URLSearchParams(window.location.search);
+        const currentListName = params.get('list') || 'General';
         const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
         const uniqueListID = `${currentUser}_${currentListName}`;
 
-        function shareList() {
-            const shareUrl = window.location.origin + window.location.pathname.replace('receiver.html', 'giver.html') + `?search=${currentUser}`;
-            if (navigator.share) {
-                navigator.share({ title: `My GIFTLINK`, url: shareUrl });
-            } else {
-                prompt("Copy link:", shareUrl);
-            }
-        }
-
         async function sendData() {
-            const nameField = document.getElementById('name');
-            const priceField = document.getElementById('price');
-            const urlField = document.getElementById('url');
-
-            if (!nameField.value) return alert("Please enter an item name");
-
-            const payload = {
-                list_title: uniqueListID,
-                name: nameField.value,
-                price: priceField.value || "0.00",
-                description: urlField.value,
-                is_nominated: false
-            };
-
+            const name = document.getElementById('name').value;
+            if(!name) return alert("Enter item name");
             await fetch(URL_BASE, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ 
+                    list_title: uniqueListID, 
+                    name: name, 
+                    price: document.getElementById('price').value || "0", 
+                    description: document.getElementById('url').value,
+                    is_nominated: false 
+                })
             });
-            
-            nameField.value = ''; priceField.value = ''; urlField.value = '';
+            document.getElementById('name').value = ''; document.getElementById('price').value = ''; document.getElementById('url').value = '';
             fetchItems();
         }
 
         async function fetchItems() {
-            document.getElementById('userDisplay').innerText = currentListName.toUpperCase() + " LIST";
-            const response = await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, {
-                method: 'GET',
+            document.getElementById('userDisplay').innerText = currentListName.toUpperCase();
+            const res = await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, {
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
-            const data = await response.json();
-            const area = document.getElementById('itemList');
-            area.innerHTML = '<label>My Items</label>';
-            
+            const data = await res.json();
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;"><label>My Items</label><button onclick="deleteEntireList()" style="background:none; border:none; color:red; font-size:10px; font-weight:bold;">DELETE LIST 🗑️</button></div>`;
             data.forEach(item => {
-                const linkDisplay = (item.description && item.description.startsWith('http')) 
-                    ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` 
-                    : '';
-
-                area.innerHTML += `
-                    <div class="item-row">
-                        <div>
-                            <b>${item.name}</b>
-                            ${linkDisplay}
-                            <span style="color:#636e72">$${item.price}</span>
-                        </div>
-                        <button class="del-btn" onclick="deleteItem(${item.id})">REMOVE</button>
-                    </div>`;
+                const link = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` : '';
+                html += `<div class="item-row"><div><b>${item.name}</b>${link}<br><span>$${item.price}</span></div><button class="del-btn" onclick="deleteItem(${item.id})">REMOVE</button></div>`;
             });
+            document.getElementById('itemList').innerHTML = html;
         }
 
         async function deleteItem(id) {
-            if(!confirm("Remove?")) return;
-            await fetch(`${URL_BASE}?id=eq.${id}`, {
-                method: 'DELETE',
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-            });
-            fetchItems();
+            if(confirm("Delete gift?")) {
+                await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
+                fetchItems();
+            }
+        }
+
+        async function deleteEntireList() {
+            if(confirm("Delete this WHOLE list?")) {
+                await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
+                window.location.href = 'lists.html';
+            }
         }
     </script>
 </body>
