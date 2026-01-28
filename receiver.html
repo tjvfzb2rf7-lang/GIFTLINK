@@ -32,7 +32,7 @@
         <label>Gift Item</label><input type="text" id="name" placeholder="What do you want?">
         <label>Estimated Price</label><input type="text" id="price" placeholder="0.00">
         <label>Link (URL)</label><input type="text" id="url" placeholder="Paste link here">
-        <button class="add-btn" onclick="sendData()">ADD TO MY LIST</button>
+        <button class="add-btn" id="addBtn" onclick="sendData()">ADD TO MY LIST</button>
     </div>
 
     <div id="itemList"></div>
@@ -47,7 +47,12 @@
 
         async function sendData() {
             const n = document.getElementById('name').value;
+            const btn = document.getElementById('addBtn');
             if(!n) return alert("Enter item name");
+
+            btn.innerText = "ADDING...";
+            btn.disabled = true;
+
             await fetch(URL_BASE, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
@@ -59,24 +64,31 @@
                     is_nominated: false 
                 })
             });
+
             document.getElementById('name').value = ''; 
             document.getElementById('price').value = ''; 
             document.getElementById('url').value = '';
+            btn.innerText = "ADD TO MY LIST";
+            btn.disabled = false;
             fetchItems();
         }
 
         async function fetchItems() {
-            document.getElementById('userDisplay').innerText = currentListName.toUpperCase() + " LIST";
+            document.getElementById('userDisplay').innerText = currentListName.toUpperCase();
             const res = await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, {
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await res.json();
             const area = document.getElementById('itemList');
             
-            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;"><label>My Items</label><button onclick="deleteEntireList()" style="background:none; border:none; color:red; font-size:10px; font-weight:bold; cursor:pointer;">DELETE LIST 🗑️</button></div>`;
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;"><label>My Items</label></div>`;
             
-            // Filters out placeholder and displays actual gifts
-            const filtered = data.filter(i => i.name !== 'List Created');
+            // Filter out system placeholders
+            const filtered = data.filter(i => i.name !== 'LIST_INITIALIZED');
+
+            if(filtered.length === 0) {
+                html += `<p style="text-align:center; color:#ccc; font-size:12px; margin-top:20px;">Your list is empty. Add something above!</p>`;
+            }
 
             filtered.forEach(item => {
                 const link = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` : '';
@@ -108,12 +120,6 @@
             if(!confirm("Remove gift?")) return;
             await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             fetchItems();
-        }
-
-        async function deleteEntireList() {
-            if(!confirm("Delete EVERYTHING in this list?")) return;
-            await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
-            window.location.href = 'lists.html';
         }
     </script>
 </body>
