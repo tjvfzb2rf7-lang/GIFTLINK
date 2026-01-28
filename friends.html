@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIFTLINK - My Friends</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
+        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        h2 { text-align: center; color: var(--secondary); letter-spacing: 2px; text-transform: uppercase; }
+        .section-label { font-size: 11px; font-weight: 800; color: #b2bec3; text-transform: uppercase; margin: 20px 0 10px 5px; display: block; }
+        .card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 5px solid var(--secondary); display: flex; justify-content: space-between; align-items: center; }
+        .gift-card { border-left-color: var(--primary); }
+        .btn-small { background: #f1f2f6; color: var(--text); border: none; padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body onload="loadSocialHub()">
+    <a href="menu.html" class="nav-link">← Menu</a>
+    <h2>Social Hub</h2>
+
+    <span class="section-label">My Claims (Gifts I'm Buying)</span>
+    <div id="myClaims"></div>
+
+    <span class="section-label">Recently Viewed Friends</span>
+    <div id="friendLists"></div>
+
+    <script>
+        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
+        const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+        
+        async function loadSocialHub() {
+            // 1. Load Claims (This is a bit tricky since we don't have accounts, 
+            // but for now we will show everything marked 'Claimed' in the DB)
+            const response = await fetch(`${URL_BASE}?is_nominated=eq.true`, {
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+            });
+            const claimedGifts = await response.json();
+            const claimsArea = document.getElementById('myClaims');
+            
+            if(claimedGifts.length === 0) {
+                claimsArea.innerHTML = '<p style="font-size:12px; color:#b2bec3; padding-left:10px;">You haven\'t claimed any gifts yet.</p>';
+            } else {
+                claimedGifts.forEach(item => {
+                    const owner = item.list_title.split('_')[0];
+                    claimsArea.innerHTML += `
+                        <div class="card gift-card">
+                            <div>
+                                <small style="color:var(--primary)">FOR ${owner.toUpperCase()}</small><br>
+                                <b>${item.name}</b>
+                            </div>
+                            <a href="${item.description}" target="_blank" class="btn-small">Link 🔗</a>
+                        </div>`;
+                });
+            }
+
+            // 2. Load "Recent Friends" from LocalStorage
+            const recent = JSON.parse(localStorage.getItem('recent_searches') || "[]");
+            const friendsArea = document.getElementById('friendLists');
+            
+            if(recent.length === 0) {
+                friendsArea.innerHTML = '<p style="font-size:12px; color:#b2bec3; padding-left:10px;">Search for a friend in "Find a List" to see them here!</p>';
+            } else {
+                recent.forEach(name => {
+                    friendsArea.innerHTML += `
+                        <div class="card">
+                            <b>${name.toUpperCase()}</b>
+                            <a href="giver.html?search=${name}" class="btn-small">View Lists →</a>
+                        </div>`;
+                });
+            }
+        }
+    </script>
+</body>
+</html>

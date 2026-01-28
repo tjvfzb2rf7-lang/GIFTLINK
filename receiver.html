@@ -17,6 +17,7 @@
         .share-btn { background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
         .del-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        .link-preview { font-size: 11px; color: var(--secondary); text-decoration: none; display: block; margin-top: 4px; font-weight: bold; }
     </style>
 </head>
 <body onload="fetchItems()">
@@ -37,7 +38,7 @@
         <input type="text" id="price" placeholder="0.00" inputmode="decimal">
 
         <label>Link to Product (URL)</label>
-        <input type="text" id="url" placeholder="Paste link here (Amazon, etc.)">
+        <input type="text" id="url" placeholder="Paste link here (Amazon, Apple, etc.)">
         
         <button class="add-btn" onclick="sendData()">ADD TO MY LIST</button>
     </div>
@@ -73,7 +74,7 @@
                 list_title: uniqueListID,
                 name: nameField.value,
                 price: priceField.value || "0.00",
-                description: urlField.value, // Saves the link here
+                description: urlField.value,
                 is_nominated: false
             };
 
@@ -98,9 +99,17 @@
             area.innerHTML = '<label>My Items</label>';
             
             data.forEach(item => {
+                const linkDisplay = (item.description && item.description.startsWith('http')) 
+                    ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` 
+                    : '';
+
                 area.innerHTML += `
                     <div class="item-row">
-                        <div><b>${item.name}</b><br><span style="color:#636e72">$${item.price}</span></div>
+                        <div>
+                            <b>${item.name}</b>
+                            ${linkDisplay}
+                            <span style="color:#636e72">$${item.price}</span>
+                        </div>
                         <button class="del-btn" onclick="deleteItem(${item.id})">REMOVE</button>
                     </div>`;
             });
