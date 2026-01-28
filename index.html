@@ -1,54 +1,70 @@
-<script>
-const URL_USERS = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users';
-const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIFTLINK - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root { --primary: #ff7675; --bg: #fdfcfb; }
+        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); margin: 0; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); width: 280px; }
+        h2 { color: var(--primary); margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>GIFTLINK</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="pin" placeholder="PIN Code">
+        <button id="loginBtn" onclick="login()">LOG IN</button>
+    </div>
 
-async function login() {
-    const userInput = document.getElementById('username').value.trim().toLowerCase();
-    const pinInput = document.getElementById('pin').value.trim();
-    const btn = document.getElementById('loginBtn');
+    <script>
+        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc';
+        const BASE_URL = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users';
 
-    if(!userInput || !pinInput) return alert("Enter Username and PIN");
+        async function login() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            const pin = document.getElementById('pin').value.trim();
+            const btn = document.getElementById('loginBtn');
 
-    btn.innerText = "CHECKING...";
+            if(!user || !pin) return alert("Enter your details!");
+            btn.innerText = "Connecting...";
 
-    try {
-        // 1. Look for user in Supabase
-        const res = await fetch(`${URL_USERS}?username=eq.${userInput}`, {
-            headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-        });
-        const data = await res.json();
-
-        if (data.length > 0) {
-            // 2. User exists - check PIN
-            if (data[0].pin === pinInput) {
-                localStorage.setItem('giftlink_user', userInput);
-                window.location.href = 'lists.html';
-            } else {
-                alert("Incorrect PIN!");
-            }
-        } else {
-            // 3. User doesn't exist - Create new account
-            if(confirm("Username not found. Register as a new user?")) {
-                const createRes = await fetch(URL_USERS, {
-                    method: 'POST',
-                    headers: { 
-                        'apikey': KEY, 
-                        'Authorization': 'Bearer ' + KEY, 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify({ username: userInput, pin: pinInput })
+            try {
+                const res = await fetch(`${BASE_URL}?username=eq.${user}`, {
+                    headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
                 });
                 
-                if(createRes.ok) {
-                    localStorage.setItem('giftlink_user', userInput);
-                    window.location.href = 'lists.html';
+                const data = await res.json();
+
+                if (data.length > 0) {
+                    if (data[0].pin === pin) {
+                        localStorage.setItem('giftlink_user', user);
+                        window.location.href = 'lists.html';
+                    } else {
+                        alert("Wrong PIN!");
+                    }
+                } else {
+                    if(confirm("New user? Create account with this PIN?")) {
+                        const create = await fetch(BASE_URL, {
+                            method: 'POST',
+                            headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: user, pin: pin })
+                        });
+                        if(create.ok) {
+                            localStorage.setItem('giftlink_user', user);
+                            window.location.href = 'lists.html';
+                        }
+                    }
                 }
+            } catch (err) {
+                alert("Database Error! Make sure your 'users' table has a policy allowing public access.");
+            } finally {
+                btn.innerText = "LOG IN";
             }
         }
-    } catch (err) {
-        alert("Database error. Make sure your 'users' table has 'username' and 'pin' columns.");
-    } finally {
-        btn.innerText = "LOG IN";
-    }
-}
-</script>
+    </script>
+</body>
+</html>
