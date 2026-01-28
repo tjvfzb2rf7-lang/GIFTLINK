@@ -12,7 +12,7 @@
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         label { font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; }
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; width:100%; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
         .btn-group { display: flex; gap: 5px; }
         .action-btn { border: none; padding: 8px 10px; border-radius: 8px; font-size: 10px; font-weight: bold; cursor: pointer; }
@@ -25,19 +25,13 @@
     </div>
 
     <div class="box">
-        <label>Gift Item</label>
-        <input type="text" id="gName" placeholder="Item name">
-        <label>Price</label>
-        <input type="text" id="gPrice" placeholder="0.00">
-        <label>Link</label>
-        <input type="text" id="gUrl" placeholder="URL link">
+        <label>Gift Item</label><input type="text" id="gName" placeholder="e.g. Nintendo Switch">
+        <label>Price</label><input type="text" id="gPrice" placeholder="0">
+        <label>Link</label><input type="text" id="gUrl" placeholder="https://...">
         <button class="add-btn" id="addBtn" onclick="addGift()">ADD GIFT</button>
     </div>
 
-    <div id="displayArea">
-        <label style="font-size: 11px; font-weight: bold; color: #b2bec3;">GIFTS IN THIS LIST</label>
-        <div id="giftList"></div>
-    </div>
+    <div id="giftList"></div>
 
     <script>
         const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
@@ -49,10 +43,12 @@
         const fullID = `${user}_${listName}`;
 
         async function addGift() {
-            const name = document.getElementById('gName').value;
-            if(!name) return alert("Enter a name");
+            const name = document.getElementById('gName').value.trim();
+            const btn = document.getElementById('addBtn');
+            if(!name) return alert("Please enter a name");
             
-            document.getElementById('addBtn').innerText = "SAVING...";
+            btn.innerText = "SAVING...";
+            btn.disabled = true;
 
             const res = await fetch(URL_BASE, {
                 method: 'POST',
@@ -61,7 +57,7 @@
                     list_title: fullID, 
                     name: name, 
                     price: document.getElementById('gPrice').value || "0", 
-                    description: document.getElementById('gUrl').value || "",
+                    url: document.getElementById('gUrl').value || "",
                     is_nominated: false 
                 })
             });
@@ -70,11 +66,12 @@
                 document.getElementById('gName').value = '';
                 document.getElementById('gPrice').value = '';
                 document.getElementById('gUrl').value = '';
-                fetchItems(); // REFRESH IMMEDIATELY
+                fetchItems();
             } else {
-                alert("Error saving. Please check your internet.");
+                alert("Database Error. Make sure you added 'list_title' and 'is_nominated' columns!");
             }
-            document.getElementById('addBtn').innerText = "ADD GIFT";
+            btn.innerText = "ADD GIFT";
+            btn.disabled = false;
         }
 
         async function fetchItems() {
@@ -83,19 +80,12 @@
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await res.json();
-            const listArea = document.getElementById('giftList');
-            
-            // Filter out system items
-            const filtered = data.filter(i => i.name !== 'SYSTEM_HEADER');
+            const area = document.getElementById('giftList');
+            area.innerHTML = '<label style="font-size: 11px; font-weight: bold; color: #b2bec3;">GIFTS ENTERED</label>';
 
-            if(filtered.length === 0) {
-                listArea.innerHTML = '<p style="text-align:center; color:#ccc; font-size:12px; margin-top:10px;">No gifts yet.</p>';
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(item => {
-                html += `
+            data.forEach(item => {
+                if(item.name === 'SYSTEM_HEADER') return;
+                area.innerHTML += `
                     <div class="item-row">
                         <div><b>${item.name}</b><br><span style="color:#636e72">$${item.price}</span></div>
                         <div class="btn-group">
@@ -104,7 +94,6 @@
                         </div>
                     </div>`;
             });
-            listArea.innerHTML = html;
         }
 
         async function editGift(id, n, p) {
