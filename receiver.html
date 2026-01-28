@@ -5,51 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
-        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: var(--bg); color: var(--text); }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); color: var(--text); }
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
-        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; }
         .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        label { font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; margin-left: 5px; }
+        label { font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; }
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; }
-        
-        /* THE GIFT ITEMS LIST */
+        .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .item-info b { display: block; font-size: 16px; color: var(--text); }
-        .item-info span { font-size: 14px; color: #636e72; }
-        
-        .btn-group { display: flex; gap: 8px; }
-        .btn-action { border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .edit-btn { background: #74b9ff; color: white; }
-        .remove-btn { background: #ffeaa7; color: #d63031; }
-        .link-text { font-size: 11px; color: var(--secondary); text-decoration: none; font-weight: bold; display: block; margin-top: 4px; }
+        .btn-group { display: flex; gap: 5px; }
+        .action-btn { border: none; padding: 8px 10px; border-radius: 8px; font-size: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body onload="fetchItems()">
     <div class="nav-header">
-        <a href="lists.html" class="nav-link">← All Lists</a>
-        <div id="listNameLabel" style="font-weight: bold; color: #b2bec3; font-size: 12px;">LIST</div>
+        <a href="lists.html" class="nav-link">← My Lists</a>
+        <div id="listDisplay" style="color: #b2bec3; font-weight: bold; font-size: 12px;">LIST</div>
     </div>
 
     <div class="box">
-        <label>Gift Name</label>
-        <input type="text" id="giftName" placeholder="What are you wishing for?">
-        
+        <label>Gift Item</label>
+        <input type="text" id="gName" placeholder="Item name">
         <label>Price</label>
-        <input type="text" id="giftPrice" placeholder="0.00">
-        
-        <label>Product Link (URL)</label>
-        <input type="text" id="giftUrl" placeholder="Paste link here (Amazon, etc.)">
-        
+        <input type="text" id="gPrice" placeholder="0.00">
+        <label>Link</label>
+        <input type="text" id="gUrl" placeholder="URL link">
         <button class="add-btn" id="addBtn" onclick="addGift()">ADD GIFT</button>
     </div>
 
-    <div id="itemsContainer">
-        <label style="font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase;">Gifts in this list</label>
-        <div id="itemList">
-            <p style="text-align:center; color:#ccc; font-size:12px; margin-top:20px;">Loading your gifts...</p>
-        </div>
+    <div id="displayArea">
+        <label style="font-size: 11px; font-weight: bold; color: #b2bec3;">GIFTS IN THIS LIST</label>
+        <div id="giftList"></div>
     </div>
 
     <script>
@@ -58,105 +45,83 @@
         
         const params = new URLSearchParams(window.location.search);
         const listName = params.get('list') || 'General';
-        const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
-        const fullListID = `${currentUser}_${listName}`;
+        const user = localStorage.getItem('giftlink_user') || 'anonymous';
+        const fullID = `${user}_${listName}`;
 
-        // 1. ADD GIFT FUNCTION
         async function addGift() {
-            const name = document.getElementById('giftName').value.trim();
-            const price = document.getElementById('giftPrice').value.trim() || "0.00";
-            const url = document.getElementById('giftUrl').value.trim();
-            const btn = document.getElementById('addBtn');
+            const name = document.getElementById('gName').value;
+            if(!name) return alert("Enter a name");
+            
+            document.getElementById('addBtn').innerText = "SAVING...";
 
-            if (!name) return alert("Please enter a gift name!");
-
-            btn.innerText = "SAVING...";
-            btn.disabled = true;
-
-            const response = await fetch(URL_BASE, {
+            const res = await fetch(URL_BASE, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    list_title: fullListID, 
+                    list_title: fullID, 
                     name: name, 
-                    price: price, 
-                    description: url,
+                    price: document.getElementById('gPrice').value || "0", 
+                    description: document.getElementById('gUrl').value || "",
                     is_nominated: false 
                 })
             });
 
-            if (response.ok) {
-                document.getElementById('giftName').value = '';
-                document.getElementById('giftPrice').value = '';
-                document.getElementById('giftUrl').value = '';
-                fetchItems(); // REFRESH LIST IMMEDIATELY
+            if(res.ok) {
+                document.getElementById('gName').value = '';
+                document.getElementById('gPrice').value = '';
+                document.getElementById('gUrl').value = '';
+                fetchItems(); // REFRESH IMMEDIATELY
             } else {
-                alert("Error saving gift. Try again.");
+                alert("Error saving. Please check your internet.");
             }
-            
-            btn.innerText = "ADD GIFT";
-            btn.disabled = false;
+            document.getElementById('addBtn').innerText = "ADD GIFT";
         }
 
-        // 2. FETCH AND DISPLAY GIFTS
         async function fetchItems() {
-            document.getElementById('listNameLabel').innerText = listName.toUpperCase();
-            
-            const res = await fetch(`${URL_BASE}?list_title=eq.${fullListID}&order=id.desc`, {
+            document.getElementById('listDisplay').innerText = listName.toUpperCase();
+            const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
             });
             const data = await res.json();
-            const listArea = document.getElementById('itemList');
+            const listArea = document.getElementById('giftList');
             
-            // Filter out system placeholders so they don't show up as gifts
-            const gifts = data.filter(item => item.name !== 'LIST_HEADER' && item.name !== 'LIST_INITIALIZED');
+            // Filter out system items
+            const filtered = data.filter(i => i.name !== 'SYSTEM_HEADER');
 
-            if (gifts.length === 0) {
-                listArea.innerHTML = `<p style="text-align:center; color:#ccc; font-size:12px; margin-top:20px;">No gifts added yet. Add your first one above!</p>`;
+            if(filtered.length === 0) {
+                listArea.innerHTML = '<p style="text-align:center; color:#ccc; font-size:12px; margin-top:10px;">No gifts yet.</p>';
                 return;
             }
 
-            let html = "";
-            gifts.forEach(item => {
-                const linkIcon = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-text">VIEW PRODUCT 🔗</a>` : '';
-                
+            let html = '';
+            filtered.forEach(item => {
                 html += `
                     <div class="item-row">
-                        <div class="item-info">
-                            <b>${item.name}</b>
-                            <span>$${item.price}</span>
-                            ${linkIcon}
-                        </div>
+                        <div><b>${item.name}</b><br><span style="color:#636e72">$${item.price}</span></div>
                         <div class="btn-group">
-                            <button class="btn-action edit-btn" onclick="editGift(${item.id}, '${item.name}', '${item.price}')">EDIT</button>
-                            <button class="btn-action remove-btn" onclick="deleteGift(${item.id})">DEL</button>
+                            <button class="action-btn" style="background:#74b9ff; color:white;" onclick="editGift(${item.id}, '${item.name}', '${item.price}')">EDIT</button>
+                            <button class="action-btn" style="background:#ffeaa7; color:#d63031;" onclick="deleteGift(${item.id})">DEL</button>
                         </div>
                     </div>`;
             });
             listArea.innerHTML = html;
         }
 
-        // 3. EDIT GIFT
-        async function editGift(id, oldName, oldPrice) {
-            const newName = prompt("Update gift name:", oldName);
-            const newPrice = prompt("Update price:", oldPrice);
-            if (newName === null) return;
-
+        async function editGift(id, n, p) {
+            const newN = prompt("New name:", n);
+            const newP = prompt("New price:", p);
+            if(newN === null) return;
             await fetch(`${URL_BASE}?id=eq.${id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName, price: newPrice })
+                body: JSON.stringify({ name: newN, price: newP })
             });
             fetchItems();
         }
 
-        // 4. DELETE GIFT
         async function deleteGift(id) {
-            if (!confirm("Remove this gift from your list?")) return;
-            await fetch(`${URL_BASE}?id=eq.${id}`, { 
-                method: 'DELETE', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
-            });
+            if(!confirm("Delete?")) return;
+            await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             fetchItems();
         }
     </script>
