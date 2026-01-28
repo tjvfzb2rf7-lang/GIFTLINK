@@ -15,7 +15,9 @@
         input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
         .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .del-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .btn-action { border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .edit-btn { background: var(--secondary); color: white; }
+        .remove-btn { background: #ffeaa7; color: #d63031; }
         .link-preview { font-size: 11px; color: var(--secondary); text-decoration: none; display: block; margin-top: 4px; font-weight: bold; }
     </style>
 </head>
@@ -44,15 +46,14 @@
         const uniqueListID = `${currentUser}_${currentListName}`;
 
         async function sendData() {
-            const name = document.getElementById('name').value;
-            if(!name) return alert("Please enter an item name");
-            
+            const n = document.getElementById('name').value;
+            if(!n) return alert("Enter item name");
             await fetch(URL_BASE, {
                 method: 'POST',
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     list_title: uniqueListID, 
-                    name: name, 
+                    name: n, 
                     price: document.getElementById('price').value || "0", 
                     description: document.getElementById('url').value,
                     is_nominated: false 
@@ -61,7 +62,7 @@
             document.getElementById('name').value = ''; 
             document.getElementById('price').value = ''; 
             document.getElementById('url').value = '';
-            fetchItems(); // Immediate refresh
+            fetchItems();
         }
 
         async function fetchItems() {
@@ -72,40 +73,46 @@
             const data = await res.json();
             const area = document.getElementById('itemList');
             
-            let html = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-                    <label>My Items</label>
-                    <button onclick="deleteEntireList()" style="background:none; border:none; color:#ff7675; font-size:10px; font-weight:bold; cursor:pointer;">DELETE ENTIRE LIST 🗑️</button>
-                </div>`;
+            let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;"><label>My Items</label><button onclick="deleteEntireList()" style="background:none; border:none; color:red; font-size:10px; font-weight:bold; cursor:pointer;">DELETE LIST 🗑️</button></div>`;
             
-            if (data.length === 0) html += '<p style="text-align:center; color:#b2bec3; font-size:13px; margin-top:20px;">No items added yet.</p>';
+            // Filters out placeholder and displays actual gifts
+            const filtered = data.filter(i => i.name !== 'List Created');
 
-            data.forEach(item => {
+            filtered.forEach(item => {
                 const link = item.description?.startsWith('http') ? `<a href="${item.description}" target="_blank" class="link-preview">View Link 🔗</a>` : '';
                 html += `
                     <div class="item-row">
-                        <div><b>${item.name}</b>${link}<br><span style="color:#636e72">$${item.price}</span></div>
-                        <button class="del-btn" onclick="deleteItem(${item.id})">REMOVE</button>
+                        <div><b>${item.name}</b>${link}<br><span>$${item.price}</span></div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-action edit-btn" onclick="editItem(${item.id}, '${item.name}', '${item.price}')">EDIT</button>
+                            <button class="btn-action remove-btn" onclick="deleteItem(${item.id})">REMOVE</button>
+                        </div>
                     </div>`;
             });
             area.innerHTML = html;
         }
 
-        async function deleteItem(id) {
-            if(!confirm("Delete this gift?")) return;
-            await fetch(`${URL_BASE}?id=eq.${id}`, { 
-                method: 'DELETE', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
+        async function editItem(id, name, price) {
+            const n = prompt("New Name:", name);
+            const p = prompt("New Price:", price);
+            if(n === null) return;
+            await fetch(`${URL_BASE}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: n, price: p })
             });
             fetchItems();
         }
 
+        async function deleteItem(id) {
+            if(!confirm("Remove gift?")) return;
+            await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
+            fetchItems();
+        }
+
         async function deleteEntireList() {
-            if(!confirm("Are you sure? This will delete EVERY gift in this list.")) return;
-            await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, { 
-                method: 'DELETE', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
-            });
+            if(!confirm("Delete EVERYTHING in this list?")) return;
+            await fetch(`${URL_BASE}?list_title=eq.${uniqueListID}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             window.location.href = 'lists.html';
         }
     </script>

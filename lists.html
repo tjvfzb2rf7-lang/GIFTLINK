@@ -14,7 +14,7 @@
         .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
         .btn-group { display: flex; gap: 8px; }
         .open-btn { background: var(--secondary); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body onload="fetchLists()">
@@ -34,16 +34,27 @@
         const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
 
         async function createList() {
-            const name = document.getElementById('newList').value.trim();
-            if(!name) return;
-            // We create a dummy item to "initialize" the list title in the DB
-            await fetch(URL_BASE, {
+            const nameInput = document.getElementById('newList');
+            const name = nameInput.value.trim();
+            if(!name) return alert("Please enter a list name");
+
+            const response = await fetch(URL_BASE, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ list_title: `${currentUser}_${name}`, name: 'Welcome Item', price: '0', is_nominated: false })
+                body: JSON.stringify({ 
+                    list_title: `${currentUser}_${name}`, 
+                    name: 'List Created', 
+                    price: '0', 
+                    is_nominated: false 
+                })
             });
-            document.getElementById('newList').value = '';
-            fetchLists();
+
+            if(response.ok) {
+                nameInput.value = '';
+                window.location.href = `receiver.html?list=${encodeURIComponent(name)}`;
+            } else {
+                alert("Error creating list.");
+            }
         }
 
         async function fetchLists() {
@@ -61,16 +72,16 @@
                     <div class="list-card">
                         <b>${title.toUpperCase()}</b>
                         <div class="btn-group">
-                            <button class="open-btn" onclick="location.href='receiver.html?list=${title}'">OPEN</button>
+                            <button class="open-btn" onclick="location.href='receiver.html?list=${encodeURIComponent(title)}'">OPEN</button>
                             <button class="delete-btn" onclick="deleteFullList('${fullID}')">DELETE</button>
                         </div>
                     </div>`;
             });
         }
 
-        async function deleteFullList(id) {
-            if(!confirm("Delete this list and all its gifts?")) return;
-            await fetch(`${URL_BASE}?list_title=eq.${id}`, { 
+        async function deleteFullList(fullID) {
+            if(!confirm("Delete this entire list and all its gifts?")) return;
+            await fetch(`${URL_BASE}?list_title=eq.${fullID}`, { 
                 method: 'DELETE', 
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
             });
