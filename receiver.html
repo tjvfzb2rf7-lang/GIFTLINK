@@ -1,96 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GIFTLINK - Manage List</title>
+    <title>GIFTLINK - Add Gifts</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
-        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); color: var(--text); }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
-        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        label { font-size: 11px; font-weight: bold; color: #b2bec3; text-transform: uppercase; margin-left: 5px; }
-        input { width: 100%; padding: 14px; margin: 8px 0 18px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); }
+        .box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        input { width: 100%; padding: 14px; margin: 8px 0 15px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; }
         .add-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
         .share-btn { width: 100%; padding: 12px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; margin-top: 10px; border-radius: 15px; border-left: 5px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .del-btn { border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; background: #ffeaa7; color: #d63031; }
+        .gift-row { background: white; padding: 15px; border-radius: 18px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .btn-group { display: flex; gap: 6px; }
+        .action-btn { border: none; padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body onload="fetchItems()">
-    <div class="nav-header">
-        <a href="lists.html" class="nav-link">← My Lists</a>
-        <div id="listDisplay" style="color: #b2bec3; font-weight: bold; font-size: 12px;">LIST</div>
-    </div>
-
+<body onload="fetchGifts()">
+    <a href="lists.html" style="text-decoration:none; color:var(--secondary); font-weight:bold; font-size:12px;">← BACK TO LISTS</a>
+    
     <div class="box">
-        <label>Gift Name</label>
-        <input type="text" id="gName" placeholder="What are you wishing for?">
-        <label>Price</label>
-        <input type="text" id="gPrice" placeholder="0.00">
-        <label>Product Link</label>
-        <input type="text" id="gUrl" placeholder="https://...">
-        
-        <button class="add-btn" id="addBtn" onclick="addGift()">ADD GIFT</button>
-        <button class="share-btn" onclick="shareToLogin()">📤 SHARE LOGIN LINK</button>
+        <h3 id="displayTitle" style="margin-top:0; color:var(--primary);">LIST</h3>
+        <input type="text" id="gName" placeholder="Gift Name">
+        <input type="text" id="gPrice" placeholder="Price ($)">
+        <button class="add-btn" onclick="addGift()">ADD GIFT</button>
+        <button class="share-btn" onclick="shareList()">📤 SHARE LOGIN LINK</button>
     </div>
 
-    <div id="itemList"></div>
+    <div id="giftList"></div>
 
     <script>
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
-        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
-        
+        const URL = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const params = new URLSearchParams(window.location.search);
-        const listName = params.get('list') || 'General';
-        const user = localStorage.getItem('giftlink_user') || 'anonymous';
-        const fullID = `${user}_${listName}`;
+        const list = params.get('list');
+        const user = localStorage.getItem('giftlink_user');
+        const fullID = `${user}_${list}`;
 
-        async function fetchItems() {
-            document.getElementById('listDisplay').innerText = listName.toUpperCase();
-            const res = await fetch(`${URL_BASE}?list_title=eq.${fullID}`, {
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-            });
+        async function fetchGifts() {
+            document.getElementById('displayTitle').innerText = list.toUpperCase();
+            const res = await fetch(`${URL}?list_title=eq.${fullID}`, { headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             const data = await res.json();
-            const realGifts = data.filter(item => item.name !== 'SYSTEM_HEADER');
+            const actualGifts = data.filter(i => i.name !== 'SYSTEM_HEADER');
             
             let html = '';
-            realGifts.forEach(item => {
-                html += `<div class="item-row">
-                    <div><b>${item.name}</b><br><small>$${item.price}</small></div>
-                    <button class="del-btn" onclick="deleteGift(${item.id})">REMOVE</button>
+            actualGifts.forEach(i => {
+                html += `<div class="gift-row">
+                    <div><b>${i.name}</b><br><small>$${i.price}</small></div>
+                    <div class="btn-group">
+                        <button class="action-btn" style="background:#74b9ff; color:white;" onclick="editGift(${i.id}, '${i.name}', '${i.price}')">EDIT</button>
+                        <button class="action-btn" style="background:#ffeaa7; color:#d63031;" onclick="delGift(${i.id})">REMOVE</button>
+                    </div>
                 </div>`;
             });
-            document.getElementById('itemList').innerHTML = html || '<p style="text-align:center;color:#ccc;">No gifts yet.</p>';
+            document.getElementById('giftList').innerHTML = html || '<p style="text-align:center;color:#ccc;">Your wishlist is empty.</p>';
         }
 
         async function addGift() {
             const name = document.getElementById('gName').value.trim();
-            if(!name) return alert("Enter a name");
-            await fetch(URL_BASE, {
+            const price = document.getElementById('gPrice').value.trim() || "0";
+            if(!name) return;
+
+            await fetch(URL, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    list_title: fullID, name: name, 
-                    price: document.getElementById('gPrice').value || "0", 
-                    url: document.getElementById('gUrl').value || "", is_nominated: false 
-                })
+                body: JSON.stringify({ list_title: fullID, name: name, price: price })
             });
+
             document.getElementById('gName').value = '';
-            fetchItems();
+            document.getElementById('gPrice').value = '';
+            fetchGifts(); // Live Update
         }
 
-        async function deleteGift(id) {
-            if(!confirm("Remove?")) return;
-            await fetch(`${URL_BASE}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
-            fetchItems();
+        async function delGift(id) {
+            if(!confirm("Remove this item?")) return;
+            await fetch(`${URL}?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
+            fetchGifts();
         }
 
-        function shareToLogin() {
-            // This copies the link to your main index.html (Login page)
+        async function editGift(id, oldN, oldP) {
+            const newN = prompt("Update Name:", oldN);
+            const newP = prompt("Update Price:", oldP);
+            if(!newN) return;
+            await fetch(`${URL}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newN, price: newP })
+            });
+            fetchGifts();
+        }
+
+        function shareList() {
             const loginUrl = window.location.origin + window.location.pathname.replace('receiver.html', 'index.html');
             navigator.clipboard.writeText(loginUrl).then(() => {
-                alert("Login link copied! Tell your friends to log in and search for you.");
+                alert(`Link Copied! Tell your friends to log in and search for:\nUser: ${user}\nList: ${list}`);
             });
         }
     </script>

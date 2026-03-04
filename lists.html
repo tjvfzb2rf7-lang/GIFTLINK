@@ -4,88 +4,74 @@
     <title>GIFTLINK - My Lists</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; --text: #2d3436; }
-        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); color: var(--text); }
-        .nav-link { text-decoration: none; color: var(--secondary); font-size: 13px; font-weight: bold; text-transform: uppercase; }
-        h2 { text-align: center; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; }
-        .box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        :root { --primary: #ff7675; --secondary: #74b9ff; --bg: #fdfcfb; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); }
+        .box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); margin-bottom: 25px; }
         input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .create-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
-        .list-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 8px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .btn-create { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .list-card { background: white; padding: 18px; border-radius: 20px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-left: 6px solid var(--secondary); }
         .btn-group { display: flex; gap: 8px; }
-        .open-btn { background: var(--secondary); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; text-decoration: none; font-size: 12px; }
-        .delete-btn { background: #ffeaa7; color: #d63031; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-sm { padding: 10px 14px; border-radius: 10px; border: none; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-open { background: var(--secondary); color: white; }
+        .btn-del { background: #ffeaa7; color: #d63031; }
     </style>
 </head>
 <body onload="fetchLists()">
-    <a href="menu.html" class="nav-link">← Back</a>
-    <h2>My Wishlists</h2>
-
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--primary);">MY WISHLISTS</h2>
+        <button onclick="localStorage.removeItem('giftlink_user'); window.location.href='index.html'" style="background:none; border:none; color:#ccc; font-size:11px; font-weight:bold; cursor:pointer;">LOGOUT</button>
+    </div>
+    
     <div class="box">
-        <input type="text" id="newList" placeholder="e.g. Birthday or Xmas">
-        <button class="create-btn" id="createBtn" onclick="createList()">CREATE LIST</button>
+        <input type="text" id="listTitle" placeholder="List Name (e.g. Christmas)">
+        <button class="btn-create" onclick="createList()">CREATE NEW LIST</button>
     </div>
 
-    <div id="listArea"></div>
+    <div id="myLists"></div>
 
     <script>
-        const URL_BASE = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
         const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
-        const currentUser = localStorage.getItem('giftlink_user') || 'anonymous';
+        const URL = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/gifts';
+        const user = localStorage.getItem('giftlink_user');
 
         async function createList() {
-            const nameInput = document.getElementById('newList');
-            const name = nameInput.value.trim();
-            if(!name) return alert("Please name your list!");
-
-            // We create an invisible "Header" item to reserve the list name in Supabase
-            const res = await fetch(URL_BASE, {
+            const title = document.getElementById('listTitle').value.trim();
+            if(!title) return alert("Enter a title");
+            
+            await fetch(URL, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    list_title: `${currentUser}_${name}`, 
-                    name: 'SYSTEM_HEADER', 
-                    price: '0', 
-                    is_nominated: false 
-                })
+                body: JSON.stringify({ list_title: `${user}_${title}`, name: 'SYSTEM_HEADER', price: '0' })
             });
-
-            if(res.ok) {
-                nameInput.value = '';
-                fetchLists();
-            } else {
-                alert("Could not create list. Try a different name.");
-            }
+            
+            document.getElementById('listTitle').value = '';
+            fetchLists(); // Instant Update
         }
 
         async function fetchLists() {
-            const res = await fetch(`${URL_BASE}?list_title=ilike.${currentUser}_*`, {
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-            });
+            const res = await fetch(`${URL}?list_title=ilike.${user}_*`, { headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             const data = await res.json();
-            const uniqueTitles = [...new Set(data.map(i => i.list_title))];
-            const area = document.getElementById('listArea');
-            area.innerHTML = '';
-
-            uniqueTitles.forEach(fullID => {
-                const displayName = fullID.split('_')[1];
-                area.innerHTML += `
-                    <div class="list-card">
-                        <b>${displayName.toUpperCase()}</b>
+            const uniqueTitles = [...new Set(data.map(i => i.list_title.split('_')[1]))];
+            
+            let html = '';
+            uniqueTitles.forEach(title => {
+                // Admin Filter
+                if (!title.toLowerCase().includes('admin')) {
+                    html += `<div class="list-card">
+                        <b style="font-size:16px;">${title.toUpperCase()}</b>
                         <div class="btn-group">
-                            <a href="receiver.html?list=${encodeURIComponent(displayName)}" class="open-btn">OPEN</a>
-                            <button class="delete-btn" onclick="deleteFullList('${fullID}')">DELETE</button>
+                            <button class="btn-sm btn-open" onclick="location.href='receiver.html?list=${title}'">OPEN</button>
+                            <button class="btn-sm btn-del" onclick="deleteFullList('${title}')">DELETE</button>
                         </div>
                     </div>`;
+                }
             });
+            document.getElementById('myLists').innerHTML = html || '<p style="text-align:center;color:#ccc;margin-top:30px;">No lists found. Create one above!</p>';
         }
 
-        async function deleteFullList(fullID) {
-            if(!confirm("Delete this list?")) return;
-            await fetch(`${URL_BASE}?list_title=eq.${fullID}`, { 
-                method: 'DELETE', 
-                headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } 
-            });
+        async function deleteFullList(title) {
+            if(!confirm(`Are you sure you want to delete "${title}" and all its gifts?`)) return;
+            await fetch(`${URL}?list_title=eq.${user}_${title}`, { method: 'DELETE', headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
             fetchLists();
         }
     </script>

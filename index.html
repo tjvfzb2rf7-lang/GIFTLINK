@@ -5,65 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root { --primary: #ff7675; --bg: #fdfcfb; }
-        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); margin: 0; }
-        .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); width: 280px; }
-        h2 { color: var(--primary); margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); margin: 0; }
+        .login-box { background: white; padding: 35px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 280px; text-align: center; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f2f6; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .remember-wrap { display: flex; align-items: center; font-size: 13px; color: #636e72; margin: 10px 0 20px 0; cursor: pointer; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 16px; }
     </style>
 </head>
-<body>
+<body onload="checkMemory()">
     <div class="login-box">
-        <h2>GIFTLINK</h2>
+        <h2 style="color: var(--primary); margin-bottom: 25px;">GIFTLINK</h2>
         <input type="text" id="username" placeholder="Username">
-        <input type="password" id="pin" placeholder="PIN Code">
-        <button id="loginBtn" onclick="login()">LOG IN</button>
+        <input type="password" id="pin" placeholder="4-Digit PIN">
+        <div class="remember-wrap" onclick="document.getElementById('rememberMe').click()">
+            <input type="checkbox" id="rememberMe" style="width:auto; margin-right:8px;">
+            <label>Stay logged in</label>
+        </div>
+        <button id="loginBtn" onclick="login()">LOG IN / REGISTER</button>
     </div>
 
     <script>
-        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc';
+        const KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkeXlmemRob2lqaW1hY2xyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTQyNjEsImV4cCI6MjA4NDYzMDI2MX0.VUURNKFnZCQBJxp2zzaNNHJ_VsgYhPKFsRpQkQLv0qc`;
         const BASE_URL = 'https://edyyfzdhoijimaclreyy.supabase.co/rest/v1/users';
+
+        function checkMemory() {
+            const u = localStorage.getItem('rem_u');
+            const p = localStorage.getItem('rem_p');
+            if(u && p) {
+                document.getElementById('username').value = u;
+                document.getElementById('pin').value = p;
+                document.getElementById('rememberMe').checked = true;
+            }
+        }
 
         async function login() {
             const user = document.getElementById('username').value.trim().toLowerCase();
             const pin = document.getElementById('pin').value.trim();
-            const btn = document.getElementById('loginBtn');
+            const remember = document.getElementById('rememberMe').checked;
 
-            if(!user || !pin) return alert("Enter your details!");
-            btn.innerText = "Connecting...";
+            if(!user || !pin) return alert("Please fill in your details");
 
-            try {
-                const res = await fetch(`${BASE_URL}?username=eq.${user}`, {
-                    headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
-                });
-                
-                const data = await res.json();
+            const res = await fetch(`${BASE_URL}?username=eq.${user}`, { headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY } });
+            const data = await res.json();
 
-                if (data.length > 0) {
-                    if (data[0].pin === pin) {
-                        localStorage.setItem('giftlink_user', user);
-                        window.location.href = 'lists.html';
-                    } else {
-                        alert("Wrong PIN!");
-                    }
-                } else {
-                    if(confirm("New user? Create account with this PIN?")) {
-                        const create = await fetch(BASE_URL, {
-                            method: 'POST',
-                            headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: user, pin: pin })
-                        });
-                        if(create.ok) {
-                            localStorage.setItem('giftlink_user', user);
-                            window.location.href = 'lists.html';
-                        }
-                    }
+            if (data.length > 0) {
+                if (data[0].pin === pin) { proceed(user, pin, remember); } 
+                else { alert("Incorrect PIN!"); }
+            } else {
+                if(confirm("Create new account?")) {
+                    await fetch(BASE_URL, {
+                        method: 'POST',
+                        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: user, pin: pin })
+                    });
+                    proceed(user, pin, remember);
                 }
-            } catch (err) {
-                alert("Database Error! Make sure your 'users' table has a policy allowing public access.");
-            } finally {
-                btn.innerText = "LOG IN";
             }
+        }
+
+        function proceed(u, p, rem) {
+            localStorage.setItem('giftlink_user', u);
+            if(rem) { localStorage.setItem('rem_u', u); localStorage.setItem('rem_p', p); }
+            else { localStorage.removeItem('rem_u'); localStorage.removeItem('rem_p'); }
+            window.location.href = 'lists.html';
         }
     </script>
 </body>
